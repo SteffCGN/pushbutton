@@ -4,11 +4,7 @@
 #include <avr/wdt.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
-
-#include <Adafruit_NeoPixel.h>
-#define PIXEL_PIN 10
-#define PIXEL_COUNT 1
-#define PIXEL_TYPE NEO_KHZ800
+#include "FastLED.h"
 
 #define FONA_RX 2
 #define FONA_TX 3
@@ -16,92 +12,202 @@
 #define FONA_KEY 7
 #define FONA_PS 8
 
+#define NUM_LEDS 1
+#define DATA_PIN 10
+#define TASTER_PIN 9
+
 #define led 13
-#define buttonpin 9
 #define trigger 6
+
+CRGB leds[NUM_LEDS];
+
+int GameCount;
+int WonLost[11];
+long Abstand[11];
+int 
+long Accuracy;
+int Status;
+int OldStatus;
+long StartTime;
+long RefTime;
+long StopTime;
+long ResultTime;
+long TimeSpan;
+char results[]="          ";
 
 int flag2 = 1;
 char userid[]="99"; //which player are whe?
 
-
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 SoftwareSerial myfona = SoftwareSerial(FONA_TX, FONA_RX);
 Adafruit_FONA fona = Adafruit_FONA(&myfona, FONA_RST);
 
-void setup(){
-  Serial.begin(9600);
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+void setup() {
+  FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
+  pinMode(TASTER_PIN,   INPUT_PULLUP);
+  leds[0] = CRGB::Black;
+  FastLED.show();
+ Serial.begin(9600);
+ OldStatus = -1;
+ Status=0;
+ StartTime=0;
+ StopTime=0;
+ ResultTime=0;
+ Accuracy=300001;
+ GameCount=1;
   delay(100);
   fona.setGPRSNetworkSettings(F("eseye.com"), F("user"), F("pass"));
-  pinMode(FONA_KEY, OUTPUT);
-  pinMode(buttonpin, INPUT_PULLUP);
-  
-  //startup blinky whinky
-  if(flag2==1)
-    {
-      for(int z = 0;z<256;z++)
-        {
-        strip.setPixelColor(0,z,255-z,0);
-        strip.show();
-        delay(3);
-        }
-      for(int z = 0;z<256;z++)
-        {
-        strip.setPixelColor(0,0,z,255-z);
-        strip.show();
-        delay(3);
-        }
-        for(int z = 0;z<7;z++)
-        {
-        strip.setPixelColor(0,255,0,0);
-        strip.show();
-        delay(100);
-        strip.setPixelColor(0,0,255,0);
-        strip.show();
-        delay(100);
-        strip.setPixelColor(0,0,0,255);
-        strip.show();
-        delay(100);
-        }  
-    }
+    pinMode(FONA_KEY, OUTPUT);
 }
 
 
 
-void loop(){
-  digitalWrite(led, HIGH);
-  pinMode(trigger, INPUT); 
-  Serial.println("loop");
-  int button = digitalRead(buttonpin);
-  if(button == LOW)
+void loop() {
+  // Turn the LED on, then pause
+ if (Status != OldStatus)
+ {
+   //   Serial.println(Status);
+      OldStatus = Status;
+ }
+ 
+ 
+ if (Status == 0) {
+      TimeSpan = random(3000000,8000000);
+      leds[0] = CRGB::Black;
+      FastLED.show();
+      StartTime = micros();
+      Status = 1;
+      
+    
+ }
+    
+   
+ if (Status == 1) {
+     
+    leds[0] = CRGB::Blue;
+    FastLED.show();
+    StopTime = micros();
+    if ((StopTime-StartTime)>TimeSpan) 
     {
-      strip.setPixelColor(0,0,200,10);
-      strip.show();
-      //Serial.println("button low");
-      delay(100);
-      UploadResults();
-      delay(3000);
-
+      RefTime = StopTime-StartTime;
+  //    Serial.println(RefTime);
+      Status = 2;
+      
     }
-    else
-    {
-    strip.setPixelColor(0,200,20,200);
-    strip.show();    
-      //Serial.println("button high");
-    }
+    
+ }
   
-  digitalWrite(led, LOW); 
-  pinMode(trigger, OUTPUT);
-  delay(200);
   
+if (Status == 2) {
+    leds[0] = CRGB::Black;
+    FastLED.show();
+    Status = 3;
+   
 }
+
+ if (Status == 3) {
+      if (digitalRead(TASTER_PIN) == LOW)
+      {
+        leds[0] = CRGB::Blue;
+        FastLED.show();
+            
+            StartTime = micros();
+            Status = 4;
+      }
+     
+   }
+ 
+  if (Status == 4) {
+      if (digitalRead(TASTER_PIN) == HIGH)
+      {
+        StopTime=micros();
+        leds[0] = CRGB::Black;
+        FastLED.show();
+        Status = 5;
+      }
+   }
+
+ if (Status == 5) {
+     
+      //  Serial.println(RefTime);
+      //  Serial.println(StopTime-StartTime);
+    ResultTime =(RefTime)-(StopTime-StartTime);
+    ResultTime = abs(ResultTime);
+     //   Serial.println(ResultTime);
+   
+    
+            Status = 6;
+      }
+
+
+if (Status == 6) {
+  
+     
+ delay(1000);
+            Status = 7;
+      
+   }
+
+   
+
+if (Status == 7) {
+  if (ResultTime<Accuracy)
+  {
+          leds[0] = CRGB::Green;
+        FastLED.show();
+        WonLost[GameCount]=1;
+        Abstand[GameCount]=ResultTime;
+       results[GameCount] = "1"; 
+  
+  }
+  else
+  {
+          leds[0] = CRGB::Red;
+        FastLED.show();
+        WonLost[GameCount]=0;
+        Abstand[GameCount]=ResultTime;
+       results[GameCount-1] = "0";
+  }
+  
+     
+ delay(3000);
+            Status = 8;
+      
+   }
+if (Status == 8) {
+   // Serial.println(GameCount);  
+   // Serial.println(WonLost[GameCount]);
+   // Serial.println(Abstand[GameCount]);
+   // Serial.println("******");  
+      leds[0] = CRGB::Black;
+        FastLED.show();
+  
+      
+ delay(2000);
+ 
+    if (GameCount<10) {
+      GameCount++;}
+  else { 
+    UploadResults();
+    GameCount = 1;
+    
+    }  
+            Status = 0;
+      
+   }
+
+
+
+
+}
+
+
+
+
 
 
 void UploadResults()
   {
-  //char results[20];
-  char results[]="1011";
+
   uint16_t returncode;
   TurnOnFona();
   delay(1000);
@@ -132,7 +238,6 @@ void UploadResults()
   }
 
 
-
 boolean SendATCommand(char Command[], char Value1, char Value2) {
   unsigned char buffer[64];                                  
   unsigned long TimeOut = 20000;    
@@ -155,7 +260,6 @@ boolean SendATCommand(char Command[], char Value1, char Value2) {
   if (complete == 1) return 1;                             
   else return 0;
 }
-
 
 
 void GetConnected()
