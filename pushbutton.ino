@@ -24,7 +24,6 @@ CRGB leds[NUM_LEDS];
 int GameCount;
 int WonLost[11];
 long Abstand[11];
-int 
 long Accuracy;
 int Status;
 int OldStatus;
@@ -156,7 +155,7 @@ if (Status == 7) {
         FastLED.show();
         WonLost[GameCount]=1;
         Abstand[GameCount]=ResultTime;
-       results[GameCount] = "1"; 
+       results[GameCount] = '1'; 
   
   }
   else
@@ -165,7 +164,7 @@ if (Status == 7) {
         FastLED.show();
         WonLost[GameCount]=0;
         Abstand[GameCount]=ResultTime;
-       results[GameCount-1] = "0";
+       results[GameCount-1] = '0';
   }
   
      
