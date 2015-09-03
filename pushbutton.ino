@@ -39,7 +39,7 @@ int flag2 = 1;
 char userid[]="99"; //which player are whe?
 
 SoftwareSerial myfona = SoftwareSerial(FONA_TX, FONA_RX);
-Adafruit_FONA fona = Adafruit_FONA(&myfona, FONA_RST);
+Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 
 void setup() {
   FastLED.addLeds<WS2812, DATA_PIN, RGB>(leds, NUM_LEDS);
@@ -211,7 +211,8 @@ void UploadResults()
   uint16_t returncode;
   TurnOnFona();
   delay(1000);
-  fona.begin(4800);
+  myfona.begin(4800);
+  fona.begin(myfona);
   delay(3500);
   GetConnected();  
   delay(3000);
@@ -293,7 +294,8 @@ void GetConnected()
       pinMode(trigger, INPUT);
       TurnOnFona();
       delay(100);
-      fona.begin(9600);    
+      myfona.begin(9600);
+      fona.begin(myfona);
       //break;
       }
     ////wdt_reset();
